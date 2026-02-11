@@ -1,6 +1,3 @@
-"""
-Тесты для цикла проверки здоровья систем
-"""
 import pytest
 from datetime import datetime
 from src.agents.agent_4.cycles.cycle_3_healthcheck import HealthCheckCycle
@@ -51,12 +48,12 @@ def test_check_api_integrations(mock_telegram_bot, mock_api_client):
     assert status['telegram_bot']['message'] == 'OK'
     
     # Проверка нездоровой системы
-    mock_api_client.set_health(False, "Connection timeout")
+    mock_api_client.set_health(False, "Таймаут соединения")
     status = cycle._check_api_integrations()
     
     assert 'telegram_bot' in status
     assert not status['telegram_bot']['healthy']
-    assert "Connection timeout" in status['telegram_bot']['message']
+    assert "Таймаут соединения" in status['telegram_bot']['message']
 
 def test_check_databases(mock_database):
     """Тест проверки баз данных"""
@@ -70,12 +67,12 @@ def test_check_databases(mock_database):
     assert status['main_db']['message'] == 'OK'
     
     # Проверка с ошибкой БД
-    mock_database.execute = lambda *args: exec('raise Exception("DB Error")')
+    mock_database.execute = lambda *args: exec('raise Exception("Ошибка подключения к БД")')
     status = cycle._check_databases()
     
     assert 'main_db' in status
     assert not status['main_db']['healthy']
-    assert "DB Error" in status['main_db']['message']
+    assert "Ошибка подключения к БД" in status['main_db']['message']
 
 def test_check_running_processes():
     """Тест проверки запущенных процессов"""
@@ -106,7 +103,7 @@ def test_attempt_recovery():
     system_name = 'test_system'
     status = {
         'healthy': False,
-        'message': 'System down',
+        'message': 'Система не отвечает',
         'timestamp': datetime.now()
     }
     
@@ -125,7 +122,7 @@ def test_escalate_issue(mock_telegram_bot):
     system_name = 'critical_system'
     status = {
         'healthy': False,
-        'message': 'Critical error',
+        'message': 'Критическая ошибка',
         'timestamp': datetime.now()
     }
     
@@ -150,7 +147,7 @@ def test_save_health_check_results(mock_database):
         },
         'system2': {
             'healthy': False,
-            'message': 'Error',
+            'message': 'Ошибка',
             'timestamp': datetime.now()
         }
     }
@@ -173,7 +170,7 @@ def test_send_status_report(mock_telegram_bot):
         },
         'system2': {
             'healthy': False,
-            'message': 'Error',
+            'message': 'Ошибка',
             'timestamp': datetime.now()
         }
     }
@@ -210,7 +207,7 @@ def test_handle_failures():
     health_status = {
         'system1': {
             'healthy': False,
-            'message': 'Error 1',
+            'message': 'Ошибка 1',
             'timestamp': datetime.now()
         },
         'system2': {
@@ -220,7 +217,7 @@ def test_handle_failures():
         },
         'system3': {
             'healthy': False,
-            'message': 'Error 2',
+            'message': 'Ошибка 2',
             'timestamp': datetime.now()
         }
     }
