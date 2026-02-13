@@ -24,6 +24,7 @@ class TimeAuditCycle(BaseCycle):
         self.calendar_client = calendar_client
         self.database = database
         self.time_data = []
+        self.last_run = None
         
     def execute(self):
         """Выполнение цикла аудита времени"""
@@ -40,7 +41,17 @@ class TimeAuditCycle(BaseCycle):
             # 4. Сохранение результатов
             self._save_results(time_data, patterns, insights)
             
+            # 5. Сохраняем время последнего запуска
+            self.last_run = datetime.now()
+            
             logger.info("Time audit cycle completed successfully")
+            
+            # Возвращаем результаты для тестирования
+            return {
+                'time_data': time_data,
+                'patterns': patterns,
+                'insights': insights
+            }
             
         except Exception as e:
             logger.error(f"Error in time audit cycle: {e}")
@@ -91,18 +102,28 @@ class TimeAuditCycle(BaseCycle):
             'weekly_comparison': {}
         }
         
-        if time_data['task_durations']:
-            # Преобразование в DataFrame для удобного анализа
-            df = pd.DataFrame(time_data['task_durations'])
-            
-            # Поиск задач, занимающих больше времени чем планировалось
-            patterns['time_wasters'] = self._find_time_wasters(df)
-            
-            # Поиск повторяющихся действий
-            patterns['automation_candidates'] = self._find_automation_candidates(df)
-            
-            # Сравнение с прошлой неделей
-            patterns['weekly_comparison'] = self._compare_with_previous_week(df)
+        if time_data.get('task_durations') and len(time_data['task_durations']) > 0:
+            try:
+                # Преобразование в DataFrame для удобного анализа
+                df = pd.DataFrame(time_data['task_durations'])
+                
+                # Проверка наличия необходимых колонок
+                required_columns = ['task_id', 'title', 'duration']
+                if not all(col in df.columns for col in required_columns):
+                    logger.warning(f"Missing required columns. Available: {df.columns.tolist()}")
+                    return patterns
+                
+                # Поиск задач, занимающих больше времени чем планировалось
+                patterns['time_wasters'] = self._find_time_wasters(df)
+                
+                # Поиск повторяющихся действий
+                patterns['automation_candidates'] = self._find_automation_candidates(df)
+                
+                # Сравнение с прошлой неделей
+                patterns['weekly_comparison'] = self._compare_with_previous_week(df)
+                
+            except Exception as e:
+                logger.error(f"Error analyzing patterns: {e}")
         
         return patterns
     
@@ -123,23 +144,31 @@ class TimeAuditCycle(BaseCycle):
         }
         
         # 1. Топ-5 пожирателей времени
-        if patterns['time_wasters']:
-            insights['top_time_wasters'] = sorted(
-                patterns['time_wasters'],
-                key=lambda x: x['excess_time'],
+        time_wasters = patterns.get('time_wasters', [])
+        if time_wasters:
+            raw_wasters = sorted(
+                time_wasters,
+                key=lambda x: x.get('excess_time', 0),
                 reverse=True
             )[:5]
+            for item in raw_wasters:
+                insights['top_time_wasters'].append({
+                    'title': 'Пожиратель времени',
+                    'text': f"Лишняя активность: {item.get('title', 'Неизвестно')}",
+                    'excess_time': item.get('excess_time', 0)
+                })
         
         # 2. Предложения по оптимизации
-        if patterns['automation_candidates']:
+        automation_candidates = patterns.get('automation_candidates', [])
+        if automation_candidates:
             insights['optimization_suggestions'] = self._generate_optimization_suggestions(
-                patterns['automation_candidates']
+                automation_candidates
             )
         
         # 3. Расчет потенциальной экономии времени
         insights['potential_time_savings'] = self._calculate_potential_savings(
-            patterns['time_wasters'],
-            patterns['automation_candidates']
+            time_wasters,
+            automation_candidates
         )
         
         return insights
@@ -164,9 +193,9 @@ class TimeAuditCycle(BaseCycle):
                 
                 self.database.execute(query, {
                     'date': datetime.now(),
-                    'patterns': patterns,
-                    'insights': insights,
-                    'savings': insights['potential_time_savings']
+                    'patterns': str(patterns),
+                    'insights': str(insights),
+                    'savings': insights.get('potential_time_savings', 0)
                 })
                 
                 logger.info("Time audit results saved to database")
@@ -177,9 +206,9 @@ class TimeAuditCycle(BaseCycle):
         # Логирование основных результатов
         logger.info(
             f"Time audit results:\n"
-            f"- Top time wasters: {len(insights['top_time_wasters'])}\n"
-            f"- Optimization suggestions: {len(insights['optimization_suggestions'])}\n"
-            f"- Potential time savings: {insights['potential_time_savings']} hours"
+            f"- Top time wasters: {len(insights.get('top_time_wasters', []))}\n"
+            f"- Optimization suggestions: {len(insights.get('optimization_suggestions', []))}\n"
+            f"- Potential time savings: {insights.get('potential_time_savings', 0)} hours"
         )
     
     def _get_calendar_events(self) -> list:
@@ -241,20 +270,45 @@ class TimeAuditCycle(BaseCycle):
             return []
             
         try:
+            # Проверяем наличие необходимых колонок
+            required_columns = ['task_id', 'title', 'duration', 'planned_duration']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                logger.warning(f"Missing columns for time wasters analysis: {missing_columns}")
+                return []
+            
+            # Создаем копию для избежания SettingWithCopyWarning
+            df_copy = df[required_columns].copy()
+            
+            # Обрабатываем NaN значения
+            df_copy['duration'] = pd.to_numeric(df_copy['duration'], errors='coerce').fillna(0)
+            df_copy['planned_duration'] = pd.to_numeric(df_copy['planned_duration'], errors='coerce').fillna(0)
+            df_copy['task_id'] = df_copy['task_id'].fillna('unknown')
+            df_copy['title'] = df_copy['title'].fillna('Без названия')
+            
             # Вычисляем превышение времени
-            df['excess_time'] = df['duration'] - df['planned_duration']
+            df_copy['excess_time'] = df_copy['duration'] - df_copy['planned_duration']
             
             # Фильтруем задачи с превышением времени
-            time_wasters = df[df['excess_time'] > 0].to_dict('records')
+            time_wasters_df = df_copy[df_copy['excess_time'] > 0]
             
-            return [
-                {
-                    'task_id': task['task_id'],
-                    'excess_time': task['excess_time'],
-                    'title': task['title']
-                }
-                for task in time_wasters
-            ]
+            if time_wasters_df.empty:
+                return []
+            
+            # Формируем результат используя to_dict вместо iterrows
+            time_wasters = time_wasters_df[['task_id', 'title', 'excess_time']].to_dict('records')
+            
+            # Приводим к нужному формату
+            result = []
+            for waster in time_wasters:
+                result.append({
+                    'task_id': str(waster.get('task_id', 'unknown')),
+                    'excess_time': float(waster.get('excess_time', 0)),
+                    'title': str(waster.get('title', 'Без названия'))
+                })
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error finding time wasters: {e}")
@@ -274,20 +328,52 @@ class TimeAuditCycle(BaseCycle):
             return []
             
         try:
-            # Группируем задачи по названию и считаем повторения
-            task_counts = df.groupby(['task_id', 'title']).agg({
-                'duration': ['count', 'mean']
-            }).reset_index()
+            # Проверяем наличие необходимых колонок
+            required_columns = ['task_id', 'title', 'duration']
+            if not all(col in df.columns for col in required_columns):
+                logger.warning("Missing required columns for automation candidates analysis")
+                return []
             
-            # Переименовываем колонки
-            task_counts.columns = ['task_id', 'title', 'repetition_count', 'avg_duration']
+            # Создаем копию и обрабатываем данные
+            df_copy = df[required_columns].copy()
+            
+            # Обрабатываем NaN значения
+            df_copy['duration'] = pd.to_numeric(df_copy['duration'], errors='coerce').fillna(0)
+            df_copy['task_id'] = df_copy['task_id'].fillna('unknown')
+            df_copy['title'] = df_copy['title'].fillna('Без названия')
+            
+            # Удаляем строки с нулевой длительностью
+            df_copy = df_copy[df_copy['duration'] > 0]
+            
+            if df_copy.empty:
+                return []
+            
+            # Группируем задачи по task_id и title и считаем повторения
+            task_counts = df_copy.groupby(['task_id', 'title'], as_index=False, dropna=False).agg(
+                repetition_count=('duration', 'count'),
+                avg_duration=('duration', 'mean')
+            )
             
             # Фильтруем задачи с частыми повторениями
-            automation_candidates = task_counts[
-                task_counts['repetition_count'] >= 3
-            ].to_dict('records')
+            automation_candidates_df = task_counts[task_counts['repetition_count'] >= 3]
             
-            return automation_candidates
+            if automation_candidates_df.empty:
+                return []
+            
+            # Формируем результат
+            automation_candidates = automation_candidates_df.to_dict('records')
+            
+            # Приводим к нужному формату
+            result = []
+            for candidate in automation_candidates:
+                result.append({
+                    'task_id': str(candidate.get('task_id', 'unknown')),
+                    'title': str(candidate.get('title', 'Без названия')),
+                    'repetition_count': int(candidate.get('repetition_count', 0)),
+                    'avg_duration': float(candidate.get('avg_duration', 0))
+                })
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error finding automation candidates: {e}")
@@ -307,28 +393,59 @@ class TimeAuditCycle(BaseCycle):
             return {}
             
         try:
+            # Проверяем наличие необходимых колонок
+            if 'date' not in df.columns:
+                logger.warning("Column 'date' not found, skipping weekly comparison")
+                return {}
+            
+            if 'duration' not in df.columns:
+                logger.warning("Column 'duration' not found, skipping weekly comparison")
+                return {}
+            
+            # Создаем копию
+            df_copy = df[['date', 'duration']].copy()
+            
+            # Обрабатываем разные форматы дат
+            try:
+                df_copy['date'] = pd.to_datetime(df_copy['date'], errors='coerce')
+                # Удаляем строки с невалидными датами
+                df_copy = df_copy.dropna(subset=['date'])
+                
+                if df_copy.empty:
+                    logger.warning("No valid dates found after conversion")
+                    return {}
+                    
+                df_copy['date'] = df_copy['date'].dt.date
+            except Exception as e:
+                logger.error(f"Error converting dates: {e}")
+                return {}
+            
+            # Обрабатываем NaN в duration ДО разделения на недели
+            df_copy['duration'] = pd.to_numeric(df_copy['duration'], errors='coerce').fillna(0)
+            
             # Определяем границы недель
             current_date = datetime.now().date()
             week_ago = current_date - timedelta(days=7)
             
             # Разделяем данные по неделям
-            current_week = df[df['date'] >= week_ago]
-            previous_week = df[df['date'] < week_ago]
+            current_week = df_copy[df_copy['date'] >= week_ago]
+            previous_week = df_copy[df_copy['date'] < week_ago]
             
             # Считаем метрики
-            current_total = current_week['duration'].sum()
-            previous_total = previous_week['duration'].sum()
+            current_total = float(current_week['duration'].sum()) if not current_week.empty else 0
+            previous_total = float(previous_week['duration'].sum()) if not previous_week.empty else 0
             
             # Вычисляем изменения
             if previous_total > 0:
-                total_change = ((current_total - previous_total) / previous_total) * 100
+                efficiency_change = ((current_total - previous_total) / previous_total) * 100
             else:
-                total_change = 0
+                efficiency_change = 0
                 
             return {
-                'total_time_change': total_change,
-                'current_week_total': current_total,
-                'previous_week_total': previous_total
+                'total_time_change': round(efficiency_change, 2),
+                'efficiency_change': round(efficiency_change, 2),
+                'current_week_total': round(current_total, 2),
+                'previous_week_total': round(previous_total, 2)
             }
             
         except Exception as e:
@@ -348,16 +465,20 @@ class TimeAuditCycle(BaseCycle):
         suggestions = []
         
         for candidate in candidates:
-            if candidate['repetition_count'] >= 5:
+            repetition_count = candidate.get('repetition_count', 0)
+            title = candidate.get('title', 'Неизвестная задача')
+            avg_duration = candidate.get('avg_duration', 0)
+            
+            if repetition_count >= 5:
                 suggestions.append(
-                    f"Автоматизировать задачу '{candidate['title']}' "
-                    f"(выполняется {candidate['repetition_count']} раз, "
-                    f"среднее время: {candidate['avg_duration']:.1f} мин)"
+                    f"Автоматизировать задачу '{title}' "
+                    f"(выполняется {repetition_count} раз, "
+                    f"среднее время: {avg_duration:.1f} мин)"
                 )
-            elif candidate['repetition_count'] >= 3:
+            elif repetition_count >= 3:
                 suggestions.append(
-                    f"Создать шаблон для задачи '{candidate['title']}' "
-                    f"(повторяется {candidate['repetition_count']} раза)"
+                    f"Создать шаблон для задачи '{title}' "
+                    f"(повторяется {repetition_count} раза)"
                 )
         
         return suggestions
@@ -365,6 +486,7 @@ class TimeAuditCycle(BaseCycle):
     def _calculate_potential_savings(self, time_wasters: list, automation_candidates: list) -> float:
         """
         Расчет потенциальной экономии времени
+        Предполагается, что все данные о времени в минутах
         
         Args:
             time_wasters (list): Список пожирателей времени
@@ -375,27 +497,23 @@ class TimeAuditCycle(BaseCycle):
         """
         total_savings = 0
         
-        # 1. Экономия от оптимизации пожирателей времени
+        # 1. Экономия от оптимизации пожирателей времени (данные в минутах)
         for waster in time_wasters:
-            total_savings += waster['excess_time']
+            excess_time = float(waster.get('excess_time', 0))
+            total_savings += excess_time
         
         # 2. Экономия от автоматизации
         for candidate in automation_candidates:
-            if candidate['repetition_count'] >= 5:
+            repetition_count = int(candidate.get('repetition_count', 0))
+            avg_duration = float(candidate.get('avg_duration', 0))
+            
+            if repetition_count >= 5:
                 # Предполагаем, что автоматизация сэкономит 80% времени
-                potential_saving = (
-                    candidate['repetition_count'] * 
-                    candidate['avg_duration'] * 
-                    0.8
-                )
+                potential_saving = repetition_count * avg_duration * 0.8
                 total_savings += potential_saving
-            elif candidate['repetition_count'] >= 3:
+            elif repetition_count >= 3:
                 # Шаблоны сэкономят 40% времени
-                potential_saving = (
-                    candidate['repetition_count'] * 
-                    candidate['avg_duration'] * 
-                    0.4
-                )
+                potential_saving = repetition_count * avg_duration * 0.4
                 total_savings += potential_saving
         
         # Переводим минуты в часы
