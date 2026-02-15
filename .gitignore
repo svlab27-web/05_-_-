@@ -1,57 +1,11 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
+.env
 venv/
-env/
-ENV/
-
-# IDE
+__pycache__/
+*.pyc
+.DS_Store
+data/logs/
+data/databases/*.db
+data/temp/
 .idea/
 .vscode/
-*.swp
-*.swo
-
-# Logs and databases
 *.log
-*.sqlite
-*.db
-
-# Environment variables
-.env
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Project specific
-data/temp/*
-!data/temp/.gitkeep
-data/logs/*
-!data/logs/.gitkeep
-data/databases/*
-!data/databases/.gitkeep

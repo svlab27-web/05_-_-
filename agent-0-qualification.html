@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Агент 0: Квалификация</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Иконки (упрощенные SVG)
+        const ChevronLeft = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+        const ChevronRight = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const Save = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
+        const Check = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+
+        const Agent0Qualification = () => {
+          const [currentBlock, setCurrentBlock] = useState(0);
+          const [formData, setFormData] = useState({
+            experience: '', niche: '', country: 'Казахстан', city: '', teamSize: 'один', teamCount: '',
+            productType: '', customerType: '', productCount: 'один', mainProduct: '', averageCheck: '', salesDuration: '',
+            monthlyRevenue: '', revenueGrowth: 'стоит', revenueGrowthPercent: '', profitMargin: '', mainExpense: '', activeClients: '',
+            mainPain: '', secondaryPains: [], triedSolutions: '', whatNotWorking: '',
+            revenueGoalFrom: '', revenueGoalTo: '', clientsGoalFrom: '', clientsGoalTo: '', otherGoals: '',
+            readyToChangeProcesses: '', readyToHire: '', readyToAutomate: '', weeklyHours: '',
+            competitors: '', whyChooseYou: '', yourDifference: '',
+            priorities: [], readyToStart: '', resultsTimeline: ''
+          });
+
+          const [errors, setErrors] = useState({});
+          const [showSummary, setShowSummary] = useState(false);
+
+          useEffect(() => {
+            const saved = localStorage.getItem('agent0-draft');
+            if (saved) {
+              try { setFormData(JSON.parse(saved)); } catch (e) { }
+            }
+          }, []);
+
+          useEffect(() => {
+            const timer = setTimeout(() => {
+              localStorage.setItem('agent0-draft', JSON.stringify(formData));
+            }, 1000);
+            return () => clearTimeout(timer);
+          }, [formData]);
+
+          const blocks = [
+            { id: 0, title: 'Базовая информация', icon: '👤' },
+            { id: 1, title: 'Что ты предлагаешь', icon: '💼' },
+            { id: 2, title: 'Финансы', icon: '💰' },
+            { id: 3, title: 'Боли и проблемы', icon: '🎯' },
+            { id: 4, title: 'Амбиции и готовность', icon: '🚀' },
+            { id: 5, title: 'Конкурентная среда', icon: '🔍' },
+            { id: 6, title: 'Готовность к действию', icon: '✅' }
+          ];
+
+          const handleChange = (field, value) => {
+            setFormData(prev => ({ ...prev, [field]: value }));
+            if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+          };
+
+          const handleCheckbox = (field, value) => {
+            setFormData(prev => {
+              const current = prev[field] || [];
+              if (current.includes(value)) {
+                return { ...prev, [field]: current.filter(v => v !== value) };
+              } else {
+                return { ...prev, [field]: [...current, value] };
+              }
+            });
+          };
+
+          const validateBlock = (blockId) => {
+            const newErrors = {};
+            
+            switch(blockId) {
+              case 0:
+                if (!formData.experience) newErrors.experience = 'Выбери опыт';
+                if (!formData.niche || formData.niche.length < 10) newErrors.niche = 'Опиши нишу (минимум 10 символов)';
+                if (formData.country === 'Казахстан' && !formData.city) newErrors.city = 'Выбери город';
+                if (formData.teamSize === 'команда' && !formData.teamCount) newErrors.teamCount = 'Укажи размер команды';
+                break;
+              case 1:
+                if (!formData.productType) newErrors.productType = 'Что ты продаёшь?';
+                if (!formData.customerType) newErrors.customerType = 'Кому ты продаёшь?';
+                if (formData.productCount === 'несколько' && !formData.mainProduct) newErrors.mainProduct = 'Укажи главный продукт';
+                if (!formData.averageCheck || formData.averageCheck <= 0) newErrors.averageCheck = 'Укажи средний чек';
+                if (!formData.salesDuration) newErrors.salesDuration = 'Укажи длительность продажи';
+                break;
+              case 2:
+                if (!formData.monthlyRevenue || formData.monthlyRevenue <= 0) newErrors.monthlyRevenue = 'Укажи выручку';
+                if (!formData.revenueGrowth) newErrors.revenueGrowth = 'Выбери динамику';
+                if ((formData.revenueGrowth === 'растет' || formData.revenueGrowth === 'падает') && !formData.revenueGrowthPercent) {
+                  newErrors.revenueGrowthPercent = 'Укажи процент';
+                }
+                if (!formData.mainExpense) newErrors.mainExpense = 'Выбери основную статью расходов';
+                if (!formData.activeClients || formData.activeClients <= 0) newErrors.activeClients = 'Укажи количество клиентов';
+                break;
+              case 3:
+                if (!formData.mainPain || formData.mainPain.length < 10) newErrors.mainPain = 'Опиши главную боль (минимум 10 символов)';
+                break;
+              case 4:
+                if (!formData.revenueGoalFrom || !formData.revenueGoalTo) newErrors.revenueGoal = 'Укажи цели по выручке';
+                if (!formData.readyToChangeProcesses) newErrors.readyToChangeProcesses = 'Ответь на вопрос';
+                if (!formData.readyToHire) newErrors.readyToHire = 'Ответь на вопрос';
+                if (!formData.readyToAutomate) newErrors.readyToAutomate = 'Ответь на вопрос';
+                if (!formData.weeklyHours) newErrors.weeklyHours = 'Укажи доступное время';
+                break;
+              case 5:
+                if (formData.competitors && formData.competitors.length < 5) newErrors.competitors = 'Минимум 5 символов';
+                break;
+              case 6:
+                if (!formData.priorities || formData.priorities.length === 0) newErrors.priorities = 'Выбери хотя бы один приоритет';
+                if (!formData.readyToStart) newErrors.readyToStart = 'Ответь на вопрос';
+                if (!formData.resultsTimeline) newErrors.resultsTimeline = 'Выбери срок';
+                break;
+            }
+            
+            setErrors(newErrors);
+            return Object.keys(newErrors).length === 0;
+          };
+
+          const nextBlock = () => {
+            if (validateBlock(currentBlock)) {
+              if (currentBlock < blocks.length - 1) {
+                setCurrentBlock(currentBlock + 1);
+                window.scrollTo(0, 0);
+              } else {
+                setShowSummary(true);
+                window.scrollTo(0, 0);
+              }
+            }
+          };
+
+          const prevBlock = () => {
+            if (currentBlock > 0) {
+              setCurrentBlock(currentBlock - 1);
+              window.scrollTo(0, 0);
+            }
+          };
+
+          const handleSubmit = () => {
+            let allValid = true;
+            for (let i = 0; i < blocks.length; i++) {
+              if (!validateBlock(i)) {
+                allValid = false;
+                setCurrentBlock(i);
+                break;
+              }
+            }
+
+            if (allValid) {
+              console.log('✅ Форма отправлена:', formData);
+              alert('✅ Профиль успешно сохранён! Теперь агенты начнут работать.');
+              localStorage.removeItem('agent0-draft');
+            }
+          };
+
+          const progress = ((currentBlock + 1) / blocks.length) * 100;
+
+          if (showSummary) {
+            return <SummaryView formData={formData} onEdit={() => setShowSummary(false)} onSubmit={handleSubmit} />;
+          }
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 px-4">
+              <div className="max-w-3xl mx-auto">
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">🤖 Агент 0: Квалификация</h1>
+                  <p className="text-gray-600">Расскажи о себе один раз — и все агенты будут работать качественно</p>
+                </div>
+
+                <div className="mb-8">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Блок {currentBlock + 1} из {blocks.length}</span>
+                    <span className="text-sm text-gray-500">{Math.round(progress)}% завершено</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                  {blocks.map((block, idx) => (
+                    <button
+                      key={block.id}
+                      onClick={() => setCurrentBlock(idx)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                        currentBlock === idx ? 'bg-blue-500 text-white shadow-lg scale-105' : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{block.icon}</span>
+                      <span className="text-sm font-medium hidden sm:inline">{block.title}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                  {currentBlock === 0 && <Block1 formData={formData} onChange={handleChange} errors={errors} />}
+                  {currentBlock === 1 && <Block2 formData={formData} onChange={handleChange} errors={errors} />}
+                  {currentBlock === 2 && <Block3 formData={formData} onChange={handleChange} errors={errors} />}
+                  {currentBlock === 3 && <Block4 formData={formData} onChange={handleChange} onCheckbox={handleCheckbox} errors={errors} />}
+                  {currentBlock === 4 && <Block5 formData={formData} onChange={handleChange} errors={errors} />}
+                  {currentBlock === 5 && <Block6 formData={formData} onChange={handleChange} errors={errors} />}
+                  {currentBlock === 6 && <Block7 formData={formData} onChange={handleChange} onCheckbox={handleCheckbox} errors={errors} />}
+
+                  <div className="flex justify-between items-center mt-8 pt-6 border-t">
+                    <button onClick={prevBlock} disabled={currentBlock === 0} className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100">
+                      <ChevronLeft /> Назад
+                    </button>
+                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                      <Save /> Автосохранение
+                    </div>
+                    <button onClick={nextBlock} className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+                      {currentBlock === blocks.length - 1 ? 'Завершить' : 'Далее'} <ChevronRight />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-center text-sm text-gray-500">💡 Твой прогресс автоматически сохраняется</div>
+              </div>
+            </div>
+          );
+        };
+
+        const Block1 = ({ formData, onChange, errors }) => (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">👤 Базовая информация</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Какой у тебя опыт в этой нише? *</label>
+              <div className="grid grid-cols-2 gap-3">
+                {['Новичок (до 1 года)', 'До 5 лет', '5-10 лет', '10+ лет'].map(option => (
+                  <button key={option} onClick={() => onChange('experience', option)} className={`p-4 rounded-lg border-2 transition-all ${formData.experience === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>
+                    {option}
+                  </button>
+                ))}
+              </div>
+              {errors.experience && <p className="mt-1 text-sm text-red-500">{errors.experience}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Опиши свою нишу в одном предложении *</label>
+              <input type="text" value={formData.niche} onChange={(e) => onChange('niche', e.target.value)} placeholder="Например: Помогаю подрядчикам получить больше заказов" maxLength={150} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <div className="flex justify-between mt-1">
+                {errors.niche && <p className="text-sm text-red-500">{errors.niche}</p>}
+                <p className="text-sm text-gray-500 ml-auto">{formData.niche.length}/150</p>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">В каком городе/стране ты работаешь? *</label>
+              <select value={formData.country} onChange={(e) => onChange('country', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="Казахстан">Казахстан</option>
+                <option value="Другая страна">Другая страна</option>
+              </select>
+            </div>
+            {formData.country === 'Казахстан' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Город *</label>
+                <select value={formData.city} onChange={(e) => onChange('city', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="">Выбери город</option>
+                  <option value="Алматы">Алматы</option>
+                  <option value="Астана">Астана</option>
+                  <option value="Шымкент">Шымкент</option>
+                  <option value="Караганда">Караганда</option>
+                  <option value="Актобе">Актобе</option>
+                  <option value="Другой">Другой</option>
+                </select>
+                {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city}</p>}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ты работаешь один или есть команда? *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => onChange('teamSize', 'один')} className={`p-4 rounded-lg border-2 transition-all ${formData.teamSize === 'один' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>Один</button>
+                <button onClick={() => onChange('teamSize', 'команда')} className={`p-4 rounded-lg border-2 transition-all ${formData.teamSize === 'команда' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>Есть команда</button>
+              </div>
+            </div>
+            {formData.teamSize === 'команда' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Сколько человек в команде? *</label>
+                <select value={formData.teamCount} onChange={(e) => onChange('teamCount', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="">Выбери размер</option>
+                  <option value="2-5">2-5 человек</option>
+                  <option value="5-10">5-10 человек</option>
+                  <option value="10+">10+ человек</option>
+                </select>
+                {errors.teamCount && <p className="mt-1 text-sm text-red-500">{errors.teamCount}</p>}
+              </div>
+            )}
+          </div>
+        );
+
+        const Block2 = ({ formData, onChange, errors }) => (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">💼 Что ты предлагаешь</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Что ты продаёшь? *</label>
+              <div className="grid grid-cols-3 gap-3">
+                {['Услуга', 'Продукт', 'Оба'].map(option => (
+                  <button key={option} onClick={() => onChange('productType', option)} className={`p-4 rounded-lg border-2 transition-all ${formData.productType === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>{option}</button>
+                ))}
+              </div>
+              {errors.productType && <p className="mt-1 text-sm text-red-500">{errors.productType}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Кому ты продаёшь? *</label>
+              <div className="grid grid-cols-3 gap-3">
+                {['B2B (компаниям)', 'B2C (людям)', 'Оба'].map(option => (
+                  <button key={option} onClick={() => onChange('customerType', option)} className={`p-4 rounded-lg border-2 transition-all ${formData.customerType === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>{option}</button>
+                ))}
+              </div>
+              {errors.customerType && <p className="mt-1 text-sm text-red-500">{errors.customerType}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Сколько основных продуктов/услуг? *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => onChange('productCount', 'один')} className={`p-4 rounded-lg border-2 transition-all ${formData.productCount === 'один' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>Один</button>
+                <button onClick={() => onChange('productCount', 'несколько')} className={`p-4 rounded-lg border-2 transition-all ${formData.productCount === 'несколько' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>Несколько</button>
+              </div>
+            </div>
+            {formData.productCount === 'несколько' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Какой главный продукт/услуга? *</label>
+                <input type="text" value={formData.mainProduct} onChange={(e) => onChange('mainProduct', e.target.value)} placeholder="Название главного продукта" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                {errors.mainProduct && <p className="mt-1 text-sm text-red-500">{errors.mainProduct}</p>}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Средний чек (тенге) *</label>
+              <input type="number" value={formData.averageCheck} onChange={(e) => onChange('averageCheck', e.target.value)} placeholder="50000" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              {errors.averageCheck && <p className="mt-1 text-sm text-red-500">{errors.averageCheck}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Как долго процесс продажи? *</label>
+              <select value={formData.salesDuration} onChange={(e) => onChange('salesDuration', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="">Выбери длительность</option>
+                <option value="1-3 дня">1-3 дня</option>
+                <option value="1-2 недели">1-2 недели</option>
+                <option value="1-2 месяца">1-2 месяца</option>
+                <option value="Не знаю">Не знаю</option>
+              </select>
+              {errors.salesDuration && <p className="mt-1 text-sm text-red-500">{errors.salesDuration}</p>}
+            </div>
+          </div>
+        );
+
+        const Block3 = ({ formData, onChange, errors }) => (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">💰 Финансы</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Твоя текущая выручка в месяц (тенге) *</label>
+              <input type="number" value={formData.monthlyRevenue} onChange={(e) => onChange('monthlyRevenue', e.target.value)} placeholder="500000" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              {errors.monthlyRevenue && <p className="mt-1 text-sm text-red-500">{errors.monthlyRevenue}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Выручка растёт, стоит на месте или падает? *</label>
+              <div className="space-y-3">
+                <button onClick={() => onChange('revenueGrowth', 'растет')} className={`w-full p-4 rounded-lg border-2 transition-all text-left ${formData.revenueGrowth === 'растет' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>📈 Растёт</button>
+                <button onClick={() => onChange('revenueGrowth', 'стоит')} className={`w-full p-4 rounded-lg border-2 transition-all text-left ${formData.revenueGrowth === 'стоит' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'}`}>➡️ Стоит на месте</button>
+                <button onClick={() => onChange('revenueGrowth', 'падает')} className={`w-full p-4 rounded-lg border-2 transition-all text-left ${formData.revenueGrowth === 'падает' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>📉 Падает</button>
+              </div>
+              {errors.revenueGrowth && <p className="mt-1 text-sm text-red-500">{errors.revenueGrowth}</p>}
+            </div>
+            {(formData.revenueGrowth === 'растет' || formData.revenueGrowth === 'падает') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">На сколько процентов в месяц? *</label>
+                <input type="number" value={formData.revenueGrowthPercent} onChange={(e) => onChange('revenueGrowthPercent', e.target.value)} placeholder="10" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                {errors.revenueGrowthPercent && <p className="mt-1 text-sm text-red-500">{errors.revenueGrowthPercent}</p>}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Твоя прибыль (примерно % от выручки)</label>
+              <input type="text" value={formData.profitMargin} onChange={(e) => onChange('profitMargin', e.target.value)} placeholder='Например: "20%" или "Не знаю точно"' className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">На что уходит больше всего денег? *</label>
+              <select value={formData.mainExpense} onChange={(e) => onChange('mainExpense', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="">Выбери статью расходов</option>
+                <option value="Зарплата команде">Зарплата команде</option>
+                <option value="Реклама">Реклама</option>
+                <option value="Инструменты/ПО">Инструменты/ПО</option>
+                <option value="Материалы">Материалы</option>
+                <option value="Субподрядчики">Субподрядчики</option>
+                <option value="Другое">Другое</option>
+              </select>
+              {errors.mainExpense && <p className="mt-1 text-sm text-red-500">{errors.mainExpense}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Сколько активных клиентов? *</label>
+              <input type="number" value={formData.activeClients} onChange={(e) => onChange('activeClients', e.target.value)} placeholder="15" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              {errors.activeClients && <p className="mt-1 text-sm text-red-500">{errors.activeClients}</p>}
+            </div>
+          </div>
+        );
+
+        const Block4 = ({ formData, onChange, onCheckbox, errors }) => {
+          const secondaryPainOptions = ['Процессы хаотичные', 'Команда не слушается', 'Не знаю как расти', 'Конкурирую по цене', 'Нет систем', 'Не знаю моих преимуществ', 'Другое'];
+          return (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">🎯 Боли и проблемы</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Главная боль (из-за которой ты сюда пришёл)? *</label>
+                <textarea value={formData.mainPain} onChange={(e) => onChange('mainPain', e.target.value)} placeholder="Например: Не хватает клиентов, маркетинг не работает" maxLength={200} rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+                <div className="flex justify-between mt-1">
+                  {errors.mainPain && <p className="text-sm text-red-500">{errors.mainPain}</p>}
+                  <p className="text-sm text-gray-500 ml-auto">{formData.mainPain.length}/200</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Второстепенные боли (если есть)</label>
+                <div className="space-y-2">
+                  {secondaryPainOptions.map(option => (
+                    <label key={option} className="flex items-center p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input type="checkbox" checked={formData.secondaryPains.includes(option)} onChange={() => onCheckbox('secondaryPains', option)} className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                      <span className="ml-3 text-gray-700">{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Что уже пробовал? Что помогло?</label>
+                <textarea value={formData.triedSolutions} onChange={(e) => onChange('triedSolutions', e.target.value)} placeholder="Расскажи о своём опыте..." maxLength={300} rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+                <p className="text-sm text-gray-500 text-right mt-1">{formData.triedSolutions.length}/300</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Что не получается?</label>
+                <textarea value={formData.whatNotWorking} onChange={(e) => onChange('whatNotWorking', e.target.value)} placeholder="Что сейчас не работает..." maxLength={300} rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+                <p className="text-sm text-gray-500 text-right mt-1">{formData.whatNotWorking.length}/300</p>
+              </div>
+            </div>
+          );
+        };
+
+        const Block5 = ({ formData, onChange, errors }) => (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">🚀 Амбиции и готовность</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Куда ты хочешь за 3 месяца? *</label>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Выручка (тенге)</label>
+                  <div className="flex items-center gap-3">
+                    <input type="number" value={formData.revenueGoalFrom} onChange={(e) => onChange('revenueGoalFrom', e.target.value)} placeholder="От" className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <span className="text-gray-500">→</span>
+                    <input type="number" value={formData.revenueGoalTo} onChange={(e) => onChange('revenueGoalTo', e.target.value)} placeholder="К" className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Клиентов в месяц</label>
+                  <div className="flex items-center gap-3">
+                    <input type="number" value={formData.clientsGoalFrom} onChange={(e) => onChange('clientsGoalFrom', e.target.value)} placeholder="От" className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <span className="text-gray-500">→</span>
+                    <input type="number" value={formData.clientsGoalTo} onChange={(e) => onChange('clientsGoalTo', e.target.value)} placeholder="К" className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Другое (опционально)</label>
+                  <input type="text" value={formData.otherGoals} onChange={(e) => onChange('otherGoals', e.target.value)} placeholder="Например: Запустить новый продукт" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              {errors.revenueGoal && <p className="mt-1 text-sm text-red-500">{errors.revenueGoal}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Готов ли ты менять процессы? *</label>
+              <div className="grid grid-cols-3 gap-3">
+                {['Да', 'Нет', 'Частично'].map(option => (
+                  <button key={option} onClick={() => onChange('readyToChangeProcesses', option)} className={`p-4 rounded-lg border-2 transition-all ${formData.readyToChangeProcesses === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>{option}</button>
+                ))}
+              </div>
+              {errors.readyToChangeProcesses && <p className="mt-1 text-sm text-red-500">{errors.readyToChangeProcesses}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Готов ли ты нанимать людей? *</label>
+              <div className="grid grid-cols-3 gap-3">
+                {['Да', 'Нет', 'Может быть'].map(option => (
+                  <button key={option} onClick={() => onChange('readyToHire', option)} className={`p-4 rounded-lg border-2 transition-all ${formData.readyToHire === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>{option}</button>
+                ))}
+              </div>
+              {errors.readyToHire && <p className="mt-1 text-sm text-red-500">{errors.readyToHire}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Готов ли ты автоматизировать? *</label>
+              <div className="grid grid-cols-3 gap-3">
+                {['Да', 'Нет', 'Не знаю что это'].map(option => (
+                  <button key={option} onClick={() => onChange('readyToAutomate', option)} className={`p-4 rounded-lg border-2 transition-all ${formData.readyToAutomate === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>{option}</button>
+                ))}
+              </div>
+              {errors.readyToAutomate && <p className="mt-1 text-sm text-red-500">{errors.readyToAutomate}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Сколько времени в неделю на внедрение? *</label>
+              <select value={formData.weeklyHours} onChange={(e) => onChange('weeklyHours', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="">Выбери количество часов</option>
+                <option value="5-10 часов">5-10 часов</option>
+                <option value="10-20 часов">10-20 часов</option>
+                <option value="20+ часов">20+ часов</option>
+              </select>
+              {errors.weeklyHours && <p className="mt-1 text-sm text-red-500">{errors.weeklyHours}</p>}
+            </div>
+          </div>
+        );
+
+        const Block6 = ({ formData, onChange, errors }) => (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">🔍 Конкурентная среда</h2>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800">💡 Этот блок опциональный. Если не знаешь конкурентов — ничего страшного, Агент 1 их найдёт автоматически.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Кто твои основные конкуренты? (если знаешь)</label>
+              <textarea value={formData.competitors} onChange={(e) => onChange('competitors', e.target.value)} placeholder="Например: Компания А, Компания B, Алексей М." rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+              {errors.competitors && <p className="mt-1 text-sm text-red-500">{errors.competitors}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Почему люди выбирают тебя вместо них?</label>
+              <textarea value={formData.whyChooseYou} onChange={(e) => onChange('whyChooseYou', e.target.value)} placeholder='Если не знаешь, напиши "Не уверен"' rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">В чём ты думаешь отличаешься от конкурентов?</label>
+              <textarea value={formData.yourDifference} onChange={(e) => onChange('yourDifference', e.target.value)} placeholder="Твои уникальные преимущества..." rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+            </div>
+          </div>
+        );
+
+        const Block7 = ({ formData, onChange, onCheckbox, errors }) => {
+          const priorityOptions = ['Найти конкурентов и понять позиционирование', 'Разобраться с финансами и рычагами роста', 'Запустить маркетинг', 'Автоматизировать процессы', 'Всё вышеперечисленное'];
+          return (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">✅ Готовность к действию</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Что ты хочешь сделать в первую очередь? *</label>
+                <div className="space-y-2">
+                  {priorityOptions.map(option => (
+                    <label key={option} className="flex items-start p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input type="checkbox" checked={formData.priorities.includes(option)} onChange={() => onCheckbox('priorities', option)} className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500 mt-0.5" />
+                      <span className="ml-3 text-gray-700">{option}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.priorities && <p className="mt-1 text-sm text-red-500">{errors.priorities}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Готов ли ты СЕЙЧАС начать применять идеи? *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => onChange('readyToStart', 'Да')} className={`p-4 rounded-lg border-2 transition-all ${formData.readyToStart === 'Да' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-gray-300'}`}>✅ Да, готов</button>
+                  <button onClick={() => onChange('readyToStart', 'Нет')} className={`p-4 rounded-lg border-2 transition-all ${formData.readyToStart === 'Нет' ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 hover:border-gray-300'}`}>⏳ Скажу когда буду готов</button>
+                </div>
+                {errors.readyToStart && <p className="mt-1 text-sm text-red-500">{errors.readyToStart}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Когда ты хочешь первые результаты? *</label>
+                <div className="space-y-3">
+                  {['За день', 'За неделю', 'За месяц', 'За 3 месяца', 'Медленно и стабильно'].map(option => (
+                    <button key={option} onClick={() => onChange('resultsTimeline', option)} className={`w-full p-4 rounded-lg border-2 transition-all text-left ${formData.resultsTimeline === option ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>{option}</button>
+                  ))}
+                </div>
+                {errors.resultsTimeline && <p className="mt-1 text-sm text-red-500">{errors.resultsTimeline}</p>}
+              </div>
+            </div>
+          );
+        };
+
+        const SummaryView = ({ formData, onEdit, onSubmit }) => {
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 px-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <Check />
+                  </div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Отлично! Проверь данные</h1>
+                  <p className="text-gray-600">Убедись что всё правильно перед отправкой</p>
+                </div>
+                <div className="bg-white rounded-xl shadow-lg p-8 space-y-8">
+                  <SummarySection title="👤 Базовая информация">
+                    <SummaryItem label="Опыт" value={formData.experience} />
+                    <SummaryItem label="Ниша" value={formData.niche} />
+                    <SummaryItem label="Локация" value={`${formData.country}${formData.city ? `, ${formData.city}` : ''}`} />
+                    <SummaryItem label="Команда" value={formData.teamSize === 'один' ? 'Работаю один' : `Команда ${formData.teamCount}`} />
+                  </SummarySection>
+                  <SummarySection title="💼 Что предлагаю">
+                    <SummaryItem label="Тип" value={formData.productType} />
+                    <SummaryItem label="Клиенты" value={formData.customerType} />
+                    <SummaryItem label="Средний чек" value={`${Number(formData.averageCheck).toLocaleString()} ₸`} />
+                    <SummaryItem label="Цикл продажи" value={formData.salesDuration} />
+                  </SummarySection>
+                  <SummarySection title="💰 Финансы">
+                    <SummaryItem label="Выручка/месяц" value={`${Number(formData.monthlyRevenue).toLocaleString()} ₸`} />
+                    <SummaryItem label="Динамика" value={formData.revenueGrowth} />
+                    <SummaryItem label="Активных клиентов" value={formData.activeClients} />
+                    <SummaryItem label="Основные расходы" value={formData.mainExpense} />
+                  </SummarySection>
+                  <SummarySection title="🎯 Главная боль">
+                    <p className="text-gray-700 italic">"{formData.mainPain}"</p>
+                    {formData.secondaryPains.length > 0 && <SummaryItem label="Также" value={formData.secondaryPains.join(', ')} />}
+                  </SummarySection>
+                  <SummarySection title="🚀 Амбиции на 3 месяца">
+                    <SummaryItem label="Выручка" value={`${Number(formData.revenueGoalFrom).toLocaleString()} → ${Number(formData.revenueGoalTo).toLocaleString()} ₸`} />
+                    {formData.clientsGoalFrom && formData.clientsGoalTo && <SummaryItem label="Клиенты" value={`${formData.clientsGoalFrom} → ${formData.clientsGoalTo}`} />}
+                    <SummaryItem label="Менять процессы" value={formData.readyToChangeProcesses} />
+                    <SummaryItem label="Нанимать" value={formData.readyToHire} />
+                    <SummaryItem label="Автоматизация" value={formData.readyToAutomate} />
+                    <SummaryItem label="Время на внедрение" value={formData.weeklyHours} />
+                  </SummarySection>
+                  {formData.competitors && (
+                    <SummarySection title="🔍 Конкуренты">
+                      <SummaryItem label="Список" value={formData.competitors} />
+                      {formData.yourDifference && <SummaryItem label="Моё отличие" value={formData.yourDifference} />}
+                    </SummarySection>
+                  )}
+                  <SummarySection title="✅ Готовность">
+                    <SummaryItem label="Приоритеты" value={formData.priorities.join(', ')} />
+                    <SummaryItem label="Готов начать" value={formData.readyToStart} />
+                    <SummaryItem label="Хочу результаты" value={formData.resultsTimeline} />
+                  </SummarySection>
+                  <div className="flex gap-4 pt-6 border-t">
+                    <button onClick={onEdit} className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-all">← Исправить</button>
+                    <button onClick={onSubmit} className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:shadow-lg transition-all">Отправить профиль ✓</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const SummarySection = ({ title, children }) => (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">{title}</h3>
+            <div className="space-y-2 pl-4">{children}</div>
+          </div>
+        );
+
+        const SummaryItem = ({ label, value }) => (
+          <div className="flex">
+            <span className="text-gray-600 min-w-[140px]">{label}:</span>
+            <span className="text-gray-900 font-medium">{value}</span>
+          </div>
+        );
+
+        ReactDOM.render(<Agent0Qualification />, document.getElementById('root'));
+    </script>
+</body>
+</html>

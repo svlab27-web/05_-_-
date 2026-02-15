@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  wellness-agent:
+    build:
+      context: ../../../../
+      dockerfile: src/agents/agent_4/cycles/Dockerfile
+    volumes:
+      - ../../../../:/app
+    working_dir: /app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["python", "-m", "src.agents.agent_4.agent"]
+
+
+
+
+

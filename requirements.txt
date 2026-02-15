@@ -10,6 +10,7 @@ numpy==1.24.3
 # Database
 sqlalchemy==2.0.25
 alembic==1.13.1
+psycopg2-binary==2.9.9
 
 # API and Web
 fastapi==0.109.0
@@ -33,3 +34,4 @@ mypy==1.8.0
 # Utilities
 python-dateutil==2.8.2
 pytz==2023.3
+psutil==5.9.8

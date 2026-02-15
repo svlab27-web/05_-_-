@@ -319,3 +319,9 @@ class Agent4:
                 # TODO: Реализовать отправку через Telegram бота
             except Exception as e:
                 logger.error(f"Error sending alert: {e}")
+import time
+
+if __name__ == "__main__":
+    print("Agent started")
+    while True:
+        time.sleep(60)

@@ -2,6 +2,8 @@
 Точка входа для запуска Агента 4
 """
 import os
+import time
+import signal
 import logging
 import logging.config
 import yaml
@@ -50,6 +52,10 @@ def setup_logging():
     # Применение конфигурации
     logging.config.dictConfig(logging_config)
 
+def handle_shutdown(signum, frame):
+    """Обработчик сигналов остановки"""
+    raise KeyboardInterrupt
+
 def main():
     """Основная функция запуска агента"""
     try:
@@ -61,25 +67,19 @@ def main():
         # Загрузка переменных окружения
         load_dotenv()
         
+        # Регистрация обработчиков сигналов
+        signal.signal(signal.SIGTERM, handle_shutdown)
+        signal.signal(signal.SIGINT, handle_shutdown)
+        
         # Создание и запуск агента
         agent = Agent4()
         agent.start()
         
-        # Ожидание команды на завершение
+        # Бесконечный цикл ожидания
+        logger.info("Agent 4 is running in background mode. Press Ctrl+C to stop.")
         try:
             while True:
-                command = input().strip().lower()
-                if command == 'stop':
-                    break
-                elif command == 'status':
-                    status = agent.get_status()
-                    print("\nAgent 4 Status:")
-                    print(f"Running: {status['agent']['running']}")
-                    print(f"Uptime: {status['agent']['uptime']}")
-                    print("\nCycles Status:")
-                    for cycle_name, cycle_status in status['cycles'].items():
-                        print(f"{cycle_name}: {'Running' if cycle_status['running'] else 'Stopped'}")
-                    print()
+                time.sleep(1)
         except KeyboardInterrupt:
             logger.info("Received shutdown signal")
         
